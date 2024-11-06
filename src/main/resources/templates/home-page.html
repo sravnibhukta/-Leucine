@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="/bs-extension.css"/>
+    <link rel="icon" href="/favicon.ico">
+    <title>Home Page</title>
+</head>
+<body>
+<div class="navbar py-0 mb-3 text-light bg-dark shadow">
+    <div class="nav-item">
+        <div class="navbar-brand">
+            <strong th:text="${loggedUser.username}"></strong>
+            <span> with role(s): </span>
+        </div>
+        <span class="navbar-text" th:each="role, iter : ${loggedUser.authorities}"
+              th:text="${role.authority} + ${iter.last ? '' : ', '}"></span>
+    </div>
+    <div class="nav-item">
+        <a class="nav-link m-1 text-light" href="/logout">Log out</a>
+    </div>
+</div>
+<div class="container mb-5 mw-100">
+    <div class="row justify-content-center">
+        <div class="col-md-1 px-2">
+            <ul class="nav nav-pills flex-column" role="tablist">
+                <li class="nav-item" sec:authorize="hasAuthority('ADMIN')">
+                    <a th:class="'nav-link text-center' + ${loggedUser.isAdmin() ? ' active' : ''}" data-toggle="pill"
+                       href="#admin-tab">Admin</a>
+                </li>
+                <li class="nav-item">
+                    <a th:class="'nav-link text-center' + ${!loggedUser.isAdmin() ? ' active' : ''}" data-toggle="pill"
+                       href="#user-tab">User</a>
+                </li>
+            </ul>
+            <img id="shuffler" src="/next.png" alt="an arrow"/>
+        </div>
+        <div class="col-md-11 tab-content">
+            <div id="admin-tab" th:class="'tab-pane' + ${loggedUser.isAdmin() ? ' active' : ''}">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#users-table">All Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#add-new-user">Add New User</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div id="users-table" class="tab-pane active table-responsive">
+                        <label class="sr-only" for="my-search-input">A search box for filtering users</label>
+                        <input class="form-control my-2" id="my-search-input" type="text" placeholder="Search...">
+
+                        <table class="table table-hover text-center">
+                            <thead class="bg-dark text-light">
+                            <tr>
+                                <th scope="col">Username</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Last name</th>
+                                <th scope="col">Department</th>
+                                <th scope="col">Salary</th>
+                                <th scope="col">Age</th>
+                                <th scope="col">Email</th>
+                                <th scope="col">Role(s)</th>
+                                <th scope="col">Enabled</th>
+                                <th scope="col">Operations</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="user: ${users}">
+                                <td th:text="${user.username}"></td>
+                                <td th:text="${user.name}"></td>
+                                <td th:text="${user.lastName}"></td>
+                                <td th:text="${user.department}"></td>
+                                <td th:text="${user.salary}"></td>
+                                <td th:text="${user.age}"></td>
+                                <td th:text="${user.email}"></td>
+                                <td>
+                                    <span th:each="role, iter : ${user.authorities}"
+                                          th:text="${role.authority == 'USER' ? 'U' : (role.authority == 'ADMIN' ? 'A' : '')} + ${iter.last ? '' : ' '}"></span>
+                                </td>
+                                <td th:text="${user.isEnabled() ? '+' : '-'}"></td>
+
+                                <td class="btn-group btn-group-sm">
+                                    <a class="btn btn-outline-primary" data-toggle="modal"
+                                       th:data-target="${'#update-modal-' + user.username}">Update
+                                    </a>
+                                    <div class="modal" th:id="${'update-modal-' + user.username}">
+                                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                                            <div class="modal-content">
+
+                                                <div class="modal-header">
+                                                    <h3 class="modal-title text-center w-100"
+                                                        th:text="${'Edit ' + user.name + ' ' + user.lastName + ' (' + user.username + ')'}"></h3>
+                                                    <button type="button" class="close" data-dismiss="modal">&times;
+                                                    </button>
+                                                </div>
+
+                                                <div class="modal-body text-left">
+                                                    <p th:text="'For the sake of privacy, you are only allowed to change the user\'s department ' +
+                                                        'and salary. If you think ' + ${user.name} + '\'s personal info needs to be altered, please request them to do so'"></p>
+
+                                                    <form>
+                                                        <input type="hidden" name="id" th:value="${user.id}">
+
+                                                        <input type="hidden" name="username"
+                                                               th:value="${user.username}">
+
+                                                        <input type="hidden" name="password"
+                                                               th:value="${user.password}">
+
+                                                        <input type="hidden" name="name" th:value="${user.name}">
+
+                                                        <input type="hidden" name="lastName"
+                                                               th:value="${user.lastName}">
+
+                                                        <div class="form-group">
+                                                            <label th:for="${user.username + '-department'}">Department: </label>
+                                                            <select th:id="${user.username + '-department'}"
+                                                                    class="form-control" name="department">
+                                                                <option th:selected="${user.department == 'accounting'}"
+                                                                        value="accounting">Accounting
+                                                                </option>
+                                                                <option th:selected="${user.department == 'sales'}"
+                                                                        value="sales">Sales
+                                                                </option>
+                                                                <option th:selected="${user.department == 'information technology'}"
+                                                                        value="information technology">IT
+                                                                </option>
+                                                                <option th:selected="${user.department == 'human resources'}"
+                                                                        value="human resources">HR
+                                                                </option>
+                                                                <option th:selected="${user.department == 'board of directors'}"
+                                                                        value="board of directors">Board
+                                                                </option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label th:for="${user.username + '-salary'}">Salary: </label>
+                                                            <input th:id="${user.username + '-salary'}"
+                                                                   class="form-control" name="salary"
+                                                                   th:value="${user.salary}"
+                                                                   min="100000" aria-describedby="au-salary-help-block"
+                                                                   required/>
+                                                            <small id="au-salary-help-block"
+                                                                   class="form-text text-muted">
+                                                                100,000+
+                                                            </small>
+                                                        </div>
+
+                                                        <input type="hidden" name="age" th:value="${user.age}">
+
+                                                        <input type="hidden" name="email" th:value="${user.email}">
+
+                                                        <input type="hidden" name="enabledByte"
+                                                               th:value="${user.enabledByte}">
+
+                                                        <input type="hidden" th:name="authorities"
+                                                               th:value="${@jsonify.apply(user.authorities)}"/>
+
+                                                        <input class="btn btn-primary d-flex ml-auto" type="submit"
+                                                               value="Submit">
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <a th:class="'btn mx-1 ' + ${user.isEnabled() ? 'btn-outline-warning' : 'btn-outline-success'}"
+                                       th:text="${user.isEnabled() ? 'Disable' : 'Enable'}"></a>
+
+                                    <a class="btn btn-outline-danger" data-toggle="modal"
+                                       th:data-target="${'#delete-modal-' + user.username}">Delete
+                                    </a>
+
+                                    <div class="modal" th:id="${'delete-modal-' + user.username}">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+
+                                                <div class="modal-header">
+                                                    <h3 class="modal-title text-center w-100"
+                                                        th:text="${'Are you sure you want to delete ' + user.name + ' ' + user.lastName + ' (' + user.username + ')?'}"></h3>
+                                                    <button type="button" class="close" data-dismiss="modal">&times;
+                                                    </button>
+                                                </div>
+
+                                                <div class="modal-body">
+                                                    <p>This action may not be easily reversed</p>
+
+                                                    <a class="btn btn-danger d-flex ml-auto" data-dismiss="modal">I am
+                                                        sure
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="add-new-user" class="tab-pane">
+                        <h4 class="display-4">Fill in the forms</h4>
+                        <form th:object="${newUser}">
+                            <input type="hidden" name="id" th:value="*{id}">
+
+                            <div class="form-group">
+                                <label for="nu-username">Username: </label>
+                                <input id="nu-username" class="form-control" name="username" type="text" pattern="\w+"
+                                       minlength="2" maxlength="15" aria-describedby="username-help-block" required>
+                                <small id="username-help-block" class="form-text text-muted">
+                                    2-15 characters. Only letters, digits, and underscores are allowed
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-password">Password: </label>
+                                <input id="nu-password" class="form-control" name="password" type="password"
+                                       minlength="5" aria-describedby="password-help-block" required/>
+                                <small id="password-help-block" class="form-text text-muted">
+                                    5+ characters
+                                </small>
+
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-name">Name: </label>
+                                <input id="nu-name" class="form-control" name="name" type="text" minlength="2"
+                                       maxlength="15" aria-describedby="name-help-block" required/>
+                                <small id="name-help-block" class="form-text text-muted">
+                                    2-15 characters
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-last-name">Last name: </label>
+                                <input id="nu-last-name" class="form-control" name="lastName" type="text"
+                                       minlength="2" maxlength="25" aria-describedby="last-name-help-block" required/>
+                                <small id="last-name-help-block" class="form-text text-muted">
+                                    2-15 characters
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-departments">Department: </label>
+                                <select id="nu-departments" class="form-control" name="department" required>
+                                    <option class="dropdown-item" value="accounting">Accounting</option>
+                                    <option class="dropdown-item" value="sales">Sales</option>
+                                    <option class="dropdown-item" value="information technology">IT</option>
+                                    <option class="dropdown-item" value="human resources">HR</option>
+                                    <option class="dropdown-item" value="board of directors">Board</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-salary">Salary: </label>
+                                <input id="nu-salary" class="form-control" name="salary" type="number"
+                                       min="100000" aria-describedby="salary-help-block" required/>
+                                <small id="salary-help-block" class="form-text text-muted">
+                                    100,000+
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-age">Age: </label>
+                                <input id="nu-age" class="form-control" name="age" type="number" min="18"
+                                       max="127" aria-describedby="age-help-block" required/>
+                                <small id="age-help-block" class="form-text text-muted">
+                                    18-127
+                                </small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="nu-email">Email: </label>
+                                <input id="nu-email" class="form-control" name="email" type="email"
+                                       pattern="[A-Za-z._-]+@[a-z]{1,}\.[a-z]{2,4}"
+                                       aria-describedby="email-help-block" required/>
+                                <small id="email-help-block" class="form-text text-muted">
+                                    Any valid email address
+                                </small>
+                            </div>
+
+                            <input type="hidden" name="enabledByte" th:value="*{enabledByte}"/>
+
+                            <fieldset class="p-2 mb-3">
+                                <legend class="w-auto px-2">Privileges</legend>
+                                <div class="form-check form-check-inline">
+                                    <label for="user" class="form-check-label mr-2">User: </label>
+                                    <input id="user" class="form-check-input" name="authorities" type="radio"
+                                           th:value="${@jsonify.apply(newUser.authorities)}"
+                                           checked/>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <label for="admin" class="form-check-label mr-2">User + Admin: </label>
+                                    <input id="admin" class="form-check-input" name="authorities" type="radio"
+                                           th:value="${@jsonify.apply(adminRoleSet)}"/>
+                                </div>
+                            </fieldset>
+
+                            <input class='btn btn-primary' type="submit" value="Submit">
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="user-tab" th:class="'tab-pane' + ${!loggedUser.isAdmin() ? ' active' : ''}"
+                 th:object="${loggedUser}">
+                <h4 class="display-4 text-center mb-4">Your employee card</h4>
+                <div class="d-flex justify-content-around">
+
+                    <div class="dummy-card shadow my-auto">
+                        <div></div>
+                    </div>
+
+                    <div class="card shadow-lg">
+                        <div class="card-header text-center text-secondary">
+                            <h4 class="d-inline font-weight-bold" th:text="*{name + ' ' + lastName}"></h4>
+                            <span th:text="*{' (' + username + ')'}"></span>
+                        </div>
+                        <div class="card-body">
+                            <ol>
+                                <li><strong>Username: </strong><span th:text="*{username}"></span>
+                                </li>
+                                <li><strong>Name: </strong><span th:text="*{name}"></span></li>
+                                <li><strong>Lastname: </strong><span th:text="*{lastName}"></span>
+                                </li>
+                                <li><strong>Department: </strong><span
+                                        th:text="*{department}"></span>
+                                </li>
+                                <li><strong>Salary: </strong><span th:text="*{salary}"></span></li>
+                                <li><strong>Age: </strong><span th:text="*{age}"></span></li>
+                                <li><strong>Email: </strong><span th:text="*{email}"></span></li>
+                                <li><strong>Role(s): </strong>
+                                    <span th:each="role, iter : ${loggedUser.authorities}"
+                                          th:text="${role.authority == 'USER' ? 'U' : (role.authority == 'ADMIN' ? 'A' : '')} + ${iter.last ? '' : ' '}"></span>
+                                </li>
+                            </ol>
+
+                            <a class="btn btn-outline-primary my-1" data-toggle="modal"
+                               data-target="#update-info-modal">
+                                Edit info
+                            </a>
+                            <div class="modal" id="update-info-modal">
+                                <div class="modal-dialog modal-lg modal-dialog-centered">
+                                    <div class="modal-content">
+
+                                        <div class="modal-header">
+                                            <h3 class="modal-title text-center w-100">Edit your info</h3>
+                                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                        </div>
+
+                                        <div class="modal-body">
+                                            <p th:text="'Unfortunately, you are not allowed to directly change your department and salary. ' +
+                                        'If you wish to alter this information, consider getting in touch with ' +
+                                        ${loggedUser.isBoardMember() ? 'the shareholders' : 'your superiors'}"></p>
+                                            <form>
+                                                <input type="hidden" name="id" th:value="*{id}"/>
+
+                                                <div class="form-group">
+                                                    <label for="username">Username: </label>
+                                                    <input id="username" class="form-control" name="username"
+                                                           th:value="*{username}" pattern="\w+" min="2"
+                                                           max="15" aria-describedby="uu-username-help-block" required/>
+                                                    <small id="uu-username-help-block" class="form-text text-muted">
+                                                        2-15 characters. Only letters, digits, and underscores are
+                                                        allowed
+                                                    </small>
+                                                </div>
+
+                                                <input type="hidden" name="password" th:value="*{password}"/>
+
+                                                <div class="form-group">
+                                                    <label for="name">Name: </label>
+                                                    <input id="name" class="form-control" name="name" th:value="*{name}"
+                                                           min="5"
+                                                           aria-describedby="uu-name-help-block" required/>
+                                                    <small id="uu-name-help-block" class="form-text text-muted">
+                                                        5+ characters
+                                                    </small>
+
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label for="last-name">Last name: </label>
+                                                    <input id="last-name" class="form-control" name="lastName"
+                                                           th:value="*{lastName}" min="2" max="15"
+                                                           aria-describedby="uu-last-name-help-block"
+                                                           required/>
+                                                    <small id="uu-last-name-help-block" class="form-text text-muted">
+                                                        2-15 characters
+                                                    </small>
+                                                </div>
+
+                                                <input type="hidden" name="department" th:value="*{department}"/>
+
+                                                <input type="hidden" name="salary" th:value="*{salary}"/>
+
+                                                <div class="form-group">
+                                                    <label for="age">Age: </label>
+                                                    <input id="age" class="form-control" name="age" th:value="*{age}"
+                                                           min="18" max="127" aria-describedby="uu-age-help-block"
+                                                           required/>
+                                                    <small id="uu-age-help-block" class="form-text text-muted">
+                                                        18-127
+                                                    </small>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label for="email">Email: </label>
+                                                    <input id="email" class="form-control" name="email"
+                                                           th:value="*{email}"
+                                                           pattern="[A-Za-z._-]+@[a-z]{1,}\.[a-z]{2,4}"
+                                                           aria-describedby="uu-email-help-block" required/>
+                                                    <small id="uu-email-help-block" class="form-text text-muted">
+                                                        Any valid email address
+                                                    </small>
+                                                </div>
+
+                                                <input type="hidden" name="enabledByte" th:value="*{enabledByte}"/>
+
+                                                <input type="hidden" name="authorities"
+                                                       th:value="${@jsonify.apply(loggedUser.authorities)}"/>
+
+                                                <input class="btn btn-primary d-flex ml-auto" type="submit"
+                                                       value="Submit">
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <a class="btn btn-outline-secondary" data-toggle="modal"
+                               data-target="#update-password-modal">
+                                Change password
+                            </a>
+                            <div class="modal" id="update-password-modal">
+                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h3 class="modal-title text-center w-100">Update your password</h3>
+                                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form>
+                                                <input type="hidden" name="id" th:value="*{id}"/>
+
+                                                <input type="hidden" name="username" th:value="*{username}"/>
+
+                                                <div class="form-group">
+                                                    <label for="password">Your new password: </label>
+                                                    <input id="password" class="form-control" name="password"
+                                                           type="password" min="5"
+                                                           aria-describedby="uu-password-help-block"
+                                                           required/>
+                                                    <small id="uu-password-help-block" class="form-text text-muted">
+                                                        5+ characters
+                                                    </small>
+                                                </div>
+
+                                                <input type="hidden" name="name" th:value="*{name}"/>
+
+                                                <input type="hidden" name="lastName" th:value="*{lastName}"/>
+
+                                                <input type="hidden" name="department" th:value="*{department}"/>
+
+                                                <input type="hidden" name="salary" th:value="*{salary}"/>
+
+                                                <input type="hidden" name="age" th:value="*{age}"/>
+
+                                                <input type="hidden" name="email" th:value="*{email}"/>
+
+                                                <input type="hidden" name="enabledByte" th:value="*{enabledByte}"/>
+
+                                                <input type="hidden" name="authorities"
+                                                       th:value="${@jsonify.apply(loggedUser.authorities)}"/>
+
+                                                <input class="btn btn-primary d-flex ml-auto" type="submit"
+                                                       value="Submit">
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dummy-card shadow my-auto">
+                        <div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer class="p-1 bg-secondary text-right">
+    <a href="https://www.flaticon.com/free-icons/next" title="next icons" class="text-light">Next icon created by
+        Roundicons - Flaticon</a>
+</footer>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="/script.js"></script>
+
+</body>
+</html>
